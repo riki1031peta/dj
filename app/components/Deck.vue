@@ -20,7 +20,7 @@ const onFile = (e: Event) => {
 
     <label class="btn">
       きょくを えらぶ
-      <input type="file" accept="audio/*,video/*" hidden @change="onFile" />
+      <input type="file" accept="audio/*,video/*,.m4a" hidden @change="onFile" />
     </label>
 
     <button class="btn play" :class="{ on: deck.playing }" @click="deck.toggle()">
