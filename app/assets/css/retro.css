@@ -56,7 +56,6 @@ h2 { margin: 0 0 8px; font-size: 18px; }
     padding: 4px 6px;
     font-size: 14px;
     overflow: hidden;
-    white-space: nowrap;
     text-overflow: ellipsis;
 }
 
