@@ -1,21 +1,17 @@
-// デッキ1台分。<video>タグで再生して、その音をEQ・フェーダーにつなぐ方式
-// 音の流れ: 再生タグ → EQ(low) → フェーダー → 出力
-// スマホのバックグラウンド再生や、動画ファイルの音にも強い
+// デッキ1台分。音の流れ: 曲 → EQ(low) → フェーダー → 出力
+// 機能を増やすときは、ここにノードを足して connect の鎖に挟むだけ
 export const useDeck = (ctx: AudioContext, out: AudioNode) => {
-  const el = document.createElement('video') // 画面には出さない
-  el.setAttribute('playsinline', '')
-  el.preload = 'auto'
-
   const low = ctx.createBiquadFilter()
   low.type = 'lowshelf'
   low.frequency.value = 200
   const fader = ctx.createGain() // クロスフェーダー用
-
-  ctx.createMediaElementSource(el).connect(low)
   low.connect(fader)
   fader.connect(out)
 
-  let url = ''
+  let buffer: AudioBuffer | null = null
+  let source: AudioBufferSourceNode | null = null
+  let startedAt = 0 // 再生開始した時刻
+  let offset = 0 // 曲の中の再生位置（秒）
 
   const state = reactive({
     title: '',
@@ -25,59 +21,55 @@ export const useDeck = (ctx: AudioContext, out: AudioNode) => {
     lowDb: 0, // -30〜+10
   })
 
-  const applyTempo = () => {
-    el.defaultPlaybackRate = state.tempo
-    el.playbackRate = state.tempo
+  const stop = () => {
+    if (source) { source.onended = null; source.stop(); source = null }
+    state.playing = false
+    offset = 0
   }
 
-  // ロック画面や通知に曲名と再生ボタンを出す
-  const setupMediaSession = () => {
-    if (!('mediaSession' in navigator)) return
-    navigator.mediaSession.metadata = new MediaMetadata({ title: state.title || 'ドットDJ' })
-    navigator.mediaSession.setActionHandler('play', () => play())
-    navigator.mediaSession.setActionHandler('pause', () => el.pause())
-  }
-
-  el.onplay = () => { state.playing = true }
-  el.onpause = () => { state.playing = false }
-  el.onended = () => { state.playing = false }
-  el.onerror = () => {
-    if (!el.src) return
+const load = async (file: File) => {
+  stop()
+  state.error = ''
+  try {
+    buffer = await ctx.decodeAudioData(await file.arrayBuffer())
+    state.title = file.name.replace(/\.[^.]+$/, '')
+  } catch {
+    buffer = null
     state.title = ''
     state.error = 'このファイルは よめないよ（MP3かWAVを ためしてね）'
   }
-  el.onloadedmetadata = applyTempo
+}
 
-  const stop = () => {
-    el.pause()
-    if (el.src) el.currentTime = 0
+  const play = async () => {
+    if (!buffer || state.playing) return
+    await ctx.resume()
+    source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.playbackRate.value = state.tempo
+    source.connect(low)
+    source.onended = () => { state.playing = false; offset = 0 }
+    startedAt = ctx.currentTime
+    source.start(0, offset)
+    state.playing = true
+  }
+
+  const pause = () => {
+    if (!source) return
+    offset += (ctx.currentTime - startedAt) * state.tempo
+    source.onended = null
+    source.stop()
+    source = null
     state.playing = false
   }
 
-  const load = async (file: File) => {
-    stop()
-    state.error = ''
-    if (url) URL.revokeObjectURL(url)
-    url = URL.createObjectURL(file)
-    el.src = url
-    state.title = file.name.replace(/\.[^.]+$/, '')
-    applyTempo()
-  }
+  const toggle = () => (state.playing ? pause() : play())
 
-  const play = async () => {
-    if (!el.src || state.error) return
-    await ctx.resume()
-    try {
-      await el.play()
-      setupMediaSession()
-    } catch {
-      state.error = 'ながせなかったよ。もういちど おしてみてね'
-    }
-  }
-
-  const toggle = () => (el.paused ? play() : el.pause())
-
-  watch(() => state.tempo, applyTempo)
+  watch(() => state.tempo, (now, before) => {
+    if (!source) return
+    offset += (ctx.currentTime - startedAt) * before // 変更前の速さで進んだ分を確定
+    startedAt = ctx.currentTime
+    source.playbackRate.value = now
+  })
   watch(() => state.lowDb, (db) => { low.gain.value = db })
 
   return reactive({ ...toRefs(state), fader, load, toggle, stop })
