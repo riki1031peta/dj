@@ -30,10 +30,35 @@ h2 { margin: 0 0 8px; font-size: 18px; }
   box-shadow: 4px 4px 0 #000;
 }
 .guide { background: #000; color: var(--green); padding: 8px 8px 8px 32px; margin: 0 0 16px; font-size: 14px; line-height: 1.8; }
-.decks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-@media (max-width: 520px) { .decks { grid-template-columns: 1fr; } }
-.deck { display: flex; flex-direction: column; gap: 10px; }
-.title { margin: 0; min-height: 1.6em; background: #000; color: var(--yellow); padding: 4px 6px; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.decks { 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+/* @media (max-width: 520px) { 
+    .decks {
+        grid-template-columns: 1fr;
+    }
+} */
+
+.deck {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.title {
+    margin: 0;
+    min-height: 1.6em;
+    background: #000;
+    color: var(--yellow);
+    padding: 4px 6px;
+    font-size: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
 
 .btn {
   display: block; text-align: center; cursor: pointer; font: inherit; color: var(--ink);
@@ -51,7 +76,11 @@ h2 { margin: 0 0 8px; font-size: 18px; }
 }
 .disc.spin { animation: spin 1.2s steps(12) infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .disc.spin { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+    .disc.spin {
+        animation: none;
+    }
+}
 
 .slider { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
 input[type='range'] { width: 100%; accent-color: var(--red); height: 24px; cursor: pointer; }
